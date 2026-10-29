@@ -9,6 +9,7 @@
 
 #define PERSIST_WEATHER 1
 #define STALE_SECS (6 * 60 * 60)
+#define RETRY_SECS (35 * 60)  // weather older than this gets re-requested every 5 minutes
 #define DEFAULT_SUNRISE (6 * 60 + 45)
 #define DEFAULT_SUNSET (18 * 60 + 30)
 #define TWILIGHT 45  // minutes either side of sunrise/sunset that count as dawn/dusk
@@ -159,7 +160,7 @@ static void scene_update(Layer *layer, GContext *ctx) {
     s_scene_bmp = gbitmap_create_with_resource(res);
     s_scene_res = res;
   }
-  if (s_scene_bmp) graphics_draw_bitmap_in_rect(ctx, s_scene_bmp, GRect(0, 0, 200, 228));
+  if (s_scene_bmp) graphics_draw_bitmap_in_rect(ctx, s_scene_bmp, layer_get_bounds(layer));
 
   if (tod == TOD_NIGHT) {
     int m = minute_of_day();
@@ -214,10 +215,6 @@ static void info_update(Layer *layer, GContext *ctx) {
   graphics_draw_text(ctx, buf, s_date_font, GRect(0, 52, TIME_W, 18),
                      GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
 
-  // divider
-  set_color(ctx, C8(0x555555));
-  graphics_draw_line(ctx, GPoint(TIME_W, 12), GPoint(TIME_W, 84));
-
   // stats
   if (weather_fresh()) snprintf(buf, sizeof(buf), "%d°", s_wx.temp);
   else snprintf(buf, sizeof(buf), "--°");
@@ -264,11 +261,16 @@ static void battery_handler(BatteryChargeState state) {
   if (s_info_layer) layer_mark_dirty(s_info_layer);
 }
 
-static void __attribute__((unused)) request_weather(void) {
+static void request_weather(void) {
   DictionaryIterator *it;
   if (app_message_outbox_begin(&it) != APP_MSG_OK) return;
   dict_write_uint8(it, MESSAGE_KEY_REQUEST, 1);
   app_message_outbox_send();
+}
+
+// Phone came back after a disconnect: catch up on any refreshes we missed.
+static void app_connection_handler(bool connected) {
+  if (connected) request_weather();
 }
 
 static void tick_handler(struct tm *t, TimeUnits changed) {
@@ -279,7 +281,8 @@ static void tick_handler(struct tm *t, TimeUnits changed) {
   s_tm.tm_hour = s_demo_min / 60;
   s_tm.tm_min = s_demo_min % 60;
 #else
-  if (t->tm_min % 30 == 0) request_weather();
+  bool overdue = (int32_t)time(NULL) - s_wx.fetched >= RETRY_SECS;
+  if (t->tm_min % 30 == 0 || (overdue && t->tm_min % 5 == 0)) request_weather();
 #endif
   redraw();
 }
@@ -327,7 +330,8 @@ static void window_unload(Window *window) {
 }
 
 static void init(void) {
-  if (persist_exists(PERSIST_WEATHER)) persist_read_data(PERSIST_WEATHER, &s_wx, sizeof(s_wx));
+  // Size check skips data saved by a build with a different Weather layout.
+  if (persist_get_size(PERSIST_WEATHER) == (int)sizeof(s_wx)) persist_read_data(PERSIST_WEATHER, &s_wx, sizeof(s_wx));
   if (s_wx.sunrise <= 0 || s_wx.sunset <= s_wx.sunrise) {
     s_wx.sunrise = DEFAULT_SUNRISE;
     s_wx.sunset = DEFAULT_SUNSET;
@@ -348,9 +352,11 @@ static void init(void) {
   tick_timer_service_subscribe(DEMO_MODE ? SECOND_UNIT : MINUTE_UNIT, tick_handler);
   battery_state_service_subscribe(battery_handler);
   health_service_events_subscribe(health_handler, NULL);
+  connection_service_subscribe((ConnectionHandlers){ .pebble_app_connection_handler = app_connection_handler });
 }
 
 static void deinit(void) {
+  connection_service_unsubscribe();
   health_service_events_unsubscribe();
   battery_state_service_unsubscribe();
   tick_timer_service_unsubscribe();
