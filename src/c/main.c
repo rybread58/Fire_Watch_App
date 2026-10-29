@@ -37,12 +37,13 @@ typedef struct {
 
 // Spots over the night scenes where the UFO can hover; it moves between them hourly.
 typedef struct { int16_t x, y; } UfoSpot;
+// All in the lower-left sky, clear of the moon and the Milky Way in the clear-night scene.
 static const UfoSpot UFO_SPOTS[] = {
-  { 98, 50 },   // over the valley
-  { 172, 30 },  // above the right-hand ridge
-  { 136, 34 },  // right over the lookout
+  { 22, 60 },   // above the left-hand ridge
+  { 70, 64 },   // below the moon
+  { 100, 52 },  // over the valley
 };
-#define UFO_STORM_SPOT 1  // the storm scene has lightning through the middle
+#define UFO_STORM_SPOT 0  // the storm scene has lightning through the middle
 
 static Window *s_window;
 static Layer *s_scene_layer;
@@ -123,8 +124,8 @@ static uint32_t pick_scene(TOD tod, Cond cond) {
 
 // ── UFO ───────────────────────────────────────────────────────────────────────
 
-// Saucer drawn in the lookout's own palette: navy silhouette, black edges and a
-// grey sill, with three small green lights along the rim.
+// Saucer in the mountains' highlight blue so it stands out from the navy sky, with
+// black edges, a silver rim and three small green lights.
 static void draw_ufo(GContext *ctx, int cx, int cy) {
   static const char *SPRITE[] = {
     "....dbbbd....",
@@ -139,10 +140,10 @@ static void draw_ufo(GContext *ctx, int cx, int cy) {
     for (int c = 0; SPRITE[r][c]; c++) {
       uint8_t color;
       switch (SPRITE[r][c]) {
-        case 'b': color = C8(0x000055); break;
+        case 'b': color = C8(0x0055AA); break;
         case 'd': color = C8(0x000000); break;
-        case 'g': color = C8(0x55AA55); break;
-        case 'f': color = C8(0x555555); break;
+        case 'g': color = C8(0x55FF55); break;
+        case 'f': color = C8(0xAAAAAA); break;
         default: continue;
       }
       set_color(ctx, color);
