@@ -17,6 +17,8 @@
 // ── Layout (Pebble Time 2, 200 x 228) ─────────────────────────────────────────
 #define INFO_Y 131   // top of the stats panel over the dark forest
 #define TIME_W 128   // left column: time + date
+#define TIME_Y -7    // Jersey 10 at 56px has ~25px of headroom above the digits
+#define DATE_Y 56
 #define STAT_X 130   // right column: temp / steps / heart / battery
 #define STAT_ROW 20
 
@@ -149,8 +151,17 @@ static void draw_ufo(GContext *ctx, int cx, int cy) {
   }
 }
 
+// Pixels hidden at the bottom of the layer by Timeline Quick View (0 when clear).
+static int obstruction(Layer *layer) {
+  return layer_get_bounds(layer).size.h - layer_get_unobstructed_bounds(layer).size.h;
+}
+
 static void scene_update(Layer *layer, GContext *ctx) {
   graphics_context_set_antialiased(ctx, false);
+  // Slide the whole scene up with the info panel so the forest stays behind the text.
+  int dy = obstruction(layer);
+  GRect frame = layer_get_bounds(layer);
+  frame.origin.y -= dy;
   TOD tod = current_tod();
   Cond cond = current_cond();
 
@@ -160,13 +171,13 @@ static void scene_update(Layer *layer, GContext *ctx) {
     s_scene_bmp = gbitmap_create_with_resource(res);
     s_scene_res = res;
   }
-  if (s_scene_bmp) graphics_draw_bitmap_in_rect(ctx, s_scene_bmp, layer_get_bounds(layer));
+  if (s_scene_bmp) graphics_draw_bitmap_in_rect(ctx, s_scene_bmp, frame);
 
   if (tod == TOD_NIGHT) {
     int m = minute_of_day();
     const UfoSpot *spot = &UFO_SPOTS[cond == W_STORM ? UFO_STORM_SPOT : s_tm.tm_hour % ARRAY_LENGTH(UFO_SPOTS)];
     static const int8_t BOB[4] = { 0, -1, -2, -1 };
-    int uy = spot->y + BOB[m % 4];
+    int uy = spot->y + BOB[m % 4] - dy;
     draw_ufo(ctx, spot->x, uy);
   }
 }
@@ -206,13 +217,13 @@ static void info_update(Layer *layer, GContext *ctx) {
   // time + date
   strftime(buf, sizeof(buf), clock_is_24h_style() ? "%H:%M" : "%I:%M", &s_tm);
   char *t = (!clock_is_24h_style() && buf[0] == '0') ? buf + 1 : buf;
-  graphics_draw_text(ctx, t, s_time_font, GRect(0, 22, TIME_W, 30),
+  graphics_draw_text(ctx, t, s_time_font, GRect(0, TIME_Y, TIME_W, 64),
                      GTextOverflowModeFill, GTextAlignmentCenter, NULL);
   strftime(buf, sizeof(buf), "%a %d %b", &s_tm);
   for (char *c = buf; *c; c++) {
     if (*c >= 'a' && *c <= 'z') *c -= 32;
   }
-  graphics_draw_text(ctx, buf, s_date_font, GRect(0, 52, TIME_W, 18),
+  graphics_draw_text(ctx, buf, s_date_font, GRect(0, DATE_Y, TIME_W, 18),
                      GTextOverflowModeTrailingEllipsis, GTextAlignmentCenter, NULL);
 
   // stats
@@ -298,11 +309,22 @@ static void inbox_received(DictionaryIterator *it, void *context) {
   redraw();
 }
 
+// Keep the info panel sitting just above Timeline Quick View while it slides in or out.
+static void layout_info(void) {
+  Layer *root = window_get_root_layer(s_window);
+  GRect b = layer_get_bounds(root);
+  layer_set_frame(s_info_layer, GRect(0, INFO_Y - obstruction(root), b.size.w, b.size.h - INFO_Y));
+  layer_mark_dirty(s_scene_layer);
+}
+
+static void unobstructed_change(AnimationProgress progress, void *context) { layout_info(); }
+static void unobstructed_did_change(void *context) { layout_info(); }
+
 static void window_load(Window *window) {
   Layer *root = window_get_root_layer(window);
   GRect b = layer_get_bounds(root);
 
-  s_time_font = fonts_get_system_font(FONT_KEY_LECO_26_BOLD_NUMBERS_AM_PM);
+  s_time_font = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_TIME_56));
   s_date_font = fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD);
   s_stat_font = fonts_get_system_font(FONT_KEY_GOTHIC_14);
   s_icon_steps = gbitmap_create_with_resource(RESOURCE_ID_ICON_STEPS);
@@ -316,9 +338,17 @@ static void window_load(Window *window) {
   s_info_layer = layer_create(GRect(0, INFO_Y, b.size.w, b.size.h - INFO_Y));
   layer_set_update_proc(s_info_layer, info_update);
   layer_add_child(root, s_info_layer);
+
+  layout_info();  // Quick View may already be showing when the face opens
+  unobstructed_area_service_subscribe((UnobstructedAreaHandlers){
+    .change = unobstructed_change,
+    .did_change = unobstructed_did_change,
+  }, NULL);
 }
 
 static void window_unload(Window *window) {
+  unobstructed_area_service_unsubscribe();
+  fonts_unload_custom_font(s_time_font);
   layer_destroy(s_info_layer);
   layer_destroy(s_scene_layer);
   s_info_layer = s_scene_layer = NULL;

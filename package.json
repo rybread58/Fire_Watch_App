@@ -36,7 +36,8 @@
         { "type": "bitmap", "name": "SCENE_NIGHT_STORM", "file": "images/scene_night_storm.png", "storageFormat": "png" },
         { "type": "bitmap", "name": "ICON_STEPS", "file": "images/steps.png", "storageFormat": "png" },
         { "type": "bitmap", "name": "ICON_HEART", "file": "images/heart.png", "storageFormat": "png" },
-        { "type": "bitmap", "name": "ICON_TEMP", "file": "images/temp.png", "storageFormat": "png" }
+        { "type": "bitmap", "name": "ICON_TEMP", "file": "images/temp.png", "storageFormat": "png" },
+        { "type": "font", "name": "FONT_TIME_56", "file": "fonts/Jersey10-Regular.ttf", "characterRegex": "[0-9:]", "compatibility": "2.7" }
       ]
     }
   }
