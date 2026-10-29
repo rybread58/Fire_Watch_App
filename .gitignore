@@ -1,0 +1,6 @@
+build/
+.lock-waf*
+.wafpickle*
+node_modules/
+pebble-logs.txt
+.pebble-logs.pid

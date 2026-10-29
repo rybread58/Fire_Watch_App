@@ -1,0 +1,43 @@
+{
+  "name": "skywatch",
+  "author": "ryank",
+  "version": "1.1.0",
+  "keywords": ["pebble-app"],
+  "private": true,
+  "dependencies": {},
+  "pebble": {
+    "displayName": "SkyWatch",
+    "uuid": "dffb3c42-1437-424a-8178-db077f127ec4",
+    "sdkVersion": "3",
+    "projectType": "native",
+    "enableMultiJS": true,
+    "targetPlatforms": ["emery"],
+    "watchapp": {
+      "watchface": true
+    },
+    "capabilities": ["location", "health"],
+    "messageKeys": ["TEMP", "COND", "SUNRISE", "SUNSET", "REQUEST"],
+    "resources": {
+      "media": [
+        { "type": "bitmap", "name": "SCENE_DAWN_CLEAR", "file": "images/scene_dawn_clear.png", "storageFormat": "png" },
+        { "type": "bitmap", "name": "SCENE_DAWN_RAIN", "file": "images/scene_dawn_rain.png", "storageFormat": "png" },
+        { "type": "bitmap", "name": "SCENE_DAY_CLEAR", "file": "images/scene_day_clear.png", "storageFormat": "png" },
+        { "type": "bitmap", "name": "SCENE_DAY_PARTLY", "file": "images/scene_day_partly.png", "storageFormat": "png" },
+        { "type": "bitmap", "name": "SCENE_DAY_RAIN", "file": "images/scene_day_rain.png", "storageFormat": "png" },
+        { "type": "bitmap", "name": "SCENE_DAY_SNOW", "file": "images/scene_day_snow.png", "storageFormat": "png" },
+        { "type": "bitmap", "name": "SCENE_DAY_STORM", "file": "images/scene_day_storm.png", "storageFormat": "png" },
+        { "type": "bitmap", "name": "SCENE_DUSK_CLEAR", "file": "images/scene_dusk_clear.png", "storageFormat": "png" },
+        { "type": "bitmap", "name": "SCENE_DUSK_RAIN", "file": "images/scene_dusk_rain.png", "storageFormat": "png" },
+        { "type": "bitmap", "name": "SCENE_DUSK_SNOW", "file": "images/scene_dusk_snow.png", "storageFormat": "png" },
+        { "type": "bitmap", "name": "SCENE_NIGHT_CLEAR", "file": "images/scene_night_clear.png", "storageFormat": "png" },
+        { "type": "bitmap", "name": "SCENE_NIGHT_CLOUD", "file": "images/scene_night_cloud.png", "storageFormat": "png" },
+        { "type": "bitmap", "name": "SCENE_NIGHT_RAIN", "file": "images/scene_night_rain.png", "storageFormat": "png" },
+        { "type": "bitmap", "name": "SCENE_NIGHT_SNOW", "file": "images/scene_night_snow.png", "storageFormat": "png" },
+        { "type": "bitmap", "name": "SCENE_NIGHT_STORM", "file": "images/scene_night_storm.png", "storageFormat": "png" },
+        { "type": "bitmap", "name": "ICON_STEPS", "file": "images/steps.png", "storageFormat": "png" },
+        { "type": "bitmap", "name": "ICON_HEART", "file": "images/heart.png", "storageFormat": "png" },
+        { "type": "bitmap", "name": "ICON_TEMP", "file": "images/temp.png", "storageFormat": "png" }
+      ]
+    }
+  }
+}
